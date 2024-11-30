@@ -22,10 +22,9 @@ const Reviews = () => {
         <p>REVIEWS PAGE</p>
         <h1>What do you think about us?</h1>
       </div>
-      <div className="testimonials__grid">
+      <div className="reviews_grid">
         {reviews.map((review) => (
           <div className="card" key={review.id}>
-            <span><i className="ri-double-quotes-l"></i></span>
             <p><strong>Book Name:</strong> {review.title}</p> 
             <p>{review.comment}</p>
             <hr />
