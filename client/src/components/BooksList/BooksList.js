@@ -117,12 +117,6 @@ const BooksList = () => {
         </select>
         <input
           type="number"
-          name="user_id"
-          value={newReview.user_id}
-          readOnly
-        />
-        <input
-          type="number"
           name="rating"
           placeholder="Rating (1-5)"
           value={newReview.rating}

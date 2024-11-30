@@ -19,8 +19,8 @@ const Reviews = () => {
   return (
     <div className="section__container">
       <div className="header">
-        <p>TESTIMONIALS</p>
-        <h1>What our clients say about us.</h1>
+        <p>REVIEWS PAGE</p>
+        <h1>What do you think about us?</h1>
       </div>
       <div className="testimonials__grid">
         {reviews.map((review) => (
