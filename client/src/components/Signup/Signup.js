@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom"; 
 import "./Signup.css";
 import img1 from "../../assets/book_img3.png";
+import img2 from "../../assets/eye.png";
 import { ToastContainer, toast } from "react-toastify"; 
 import "react-toastify/dist/ReactToastify.css"; 
 
@@ -100,15 +101,9 @@ const Signup = () => {
                 onChange={(e) => setPassword(e.target.value)}
               />
               <img
-                src="images/eye.svg"
+                src={img2}
                 alt="Eye icon"
                 className={`eye ${passwordVisible ? "hidden" : ""}`} 
-                onClick={togglePasswordVisibility}
-              />
-              <img
-                src="images/close-eye.svg"
-                alt="Close Eye icon"
-                className={`close-eye ${passwordVisible ? "hidden" : ""}`}
                 onClick={togglePasswordVisibility}
               />
             </div>

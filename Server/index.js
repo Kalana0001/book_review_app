@@ -7,6 +7,7 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+// Database connection setup
 const db = mysql.createConnection({
   host: "localhost",
   user: "root",
@@ -14,14 +15,21 @@ const db = mysql.createConnection({
   database: "book_app",
 });
 
+db.connect((err) => {
+  if (err) {
+    console.error('Database connection failed:', err.stack);
+    process.exit(1); 
+  }
+  console.log('Connected to database.');
+});
+
 async function logAction(userId, action) {
   console.log(`User ${userId ? userId : 'unknown'} performed action: ${action}`);
 }
 
+// User signup API
 app.post('/api/signup', async (req, res) => {
   const { username, email, password } = req.body;
-
-  console.log('Received signup request:', req.body);
 
   if (!username || !email || !password) {
     return res.status(400).json({ message: 'All fields are required' });
@@ -37,8 +45,6 @@ app.post('/api/signup', async (req, res) => {
     const query = 'INSERT INTO users (username, email, password) VALUES (?, ?, ?)';
     const [insertResult] = await db.promise().query(query, [username, email, password]);
 
-    console.log('User registered successfully:', insertResult);
-
     res.status(201).json({ message: 'User registered successfully' });
   } catch (err) {
     console.error('Error during signup:', err);
@@ -46,103 +52,86 @@ app.post('/api/signup', async (req, res) => {
   }
 });
 
-
-app.post("/api/signin", async (req, res) => {
+// User signin API
+app.post('/api/signin', async (req, res) => {
   const { email, password } = req.body;
-  const sql = "SELECT * FROM users WHERE email = ?";
 
-  console.log('Received signin request:', req.body);
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email and password are required' });
+  }
 
   try {
-    const [data] = await db.promise().query(sql, [email]);
+    const [data] = await db.promise().query('SELECT * FROM users WHERE email = ?', [email]);
 
-    if (data.length > 0) {
-      const user = data[0];
-
-      console.log("User fetched from DB:", user);
-
-      if (password !== user.password) {
-        await logAction(user.id, "Login Failed");
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      await logAction(user.id, "Signed in");
-      res.json({ message: "Login Successful", user: { id: user.id, username: user.username, email: user.email } });
-    } else {
-      await logAction(null, `Login Failed for email: ${email}`);
-      return res.status(401).json({ message: "Invalid credentials" });
+    if (data.length === 0) {
+      await logAction(null, `Login failed for email: ${email}`);
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
+
+    const user = data[0];
+    if (password !== user.password) {
+      await logAction(user.id, 'Login failed');
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    await logAction(user.id, 'Signed in');
+    res.json({ message: 'Login successful', user: { id: user.id, username: user.username, email: user.email } });
   } catch (err) {
-    console.error("Error during signin:", err);
-    res.status(500).json({ message: "Error during sign-in" });
+    console.error('Error during signin:', err);
+    res.status(500).json({ message: 'Error during sign-in' });
   }
 });
 
-
-app.post('/api/review', (req, res) => {
+// Add a book API
+app.post('/api/review', async (req, res) => {
   const { book_id, user_id, rating, comment } = req.body;
 
-
   if (!book_id || !user_id || !rating || !comment) {
-    return res.status(400).json({ message: 'User ID, book ID, and rating are required' });
+    return res.status(400).json({ message: 'All fields are required' });
   }
-
 
   if (rating < 1 || rating > 5) {
     return res.status(400).json({ message: 'Rating must be between 1 and 5' });
   }
 
-
-  const query = `
-    INSERT INTO reviews (book_id, user_id, rating, comment)
-    VALUES (?, ?, ?, ?)
-  `;
-  db.query(query, [book_id, user_id, rating, comment], (err, result) => {
-    if (err) {
-      console.error('Error inserting review:', err);
-      return res.status(500).json({ message: 'Error adding review' });
-    }
-    res.status(200).json({ message: 'Review added successfully' });
-  });
+  try {
+    const query = 'INSERT INTO reviews (book_id, user_id, rating, comment) VALUES (?, ?, ?, ?)';
+    await db.promise().query(query, [book_id, user_id, rating, comment]);
+    res.status(201).json({ message: 'Review added successfully' });
+  } catch (err) {
+    console.error('Error adding review:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
 
-
-
+// Fetch all API
 app.get('/api/books', async (req, res) => {
   try {
     const [results] = await db.promise().query('SELECT * FROM books');
-    return res.status(200).json(results);
+    res.status(200).json(results);
   } catch (err) {
     console.error('Error fetching books:', err);
-    return res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-
-app.get('/api/reviews', (req, res) => {
+// Fetch all reviews with book titles API
+app.get('/api/reviews', async (req, res) => {
   const query = `
-    SELECT reviews.id, books.title, reviews.comment, reviews.rating
+    SELECT reviews.id, books.title AS book_title, reviews.comment, reviews.rating
     FROM reviews
-    JOIN books ON reviews.book_id = books.id`;
+    JOIN books ON reviews.book_id = books.id
+  `;
 
-  db.query(query, (err, results) => {
-    if (err) {
-      console.error('Error fetching reviews:', err);
-      return res.status(500).json({ message: 'Error fetching reviews', error: err });
-    }
+  try {
+    const [results] = await db.promise().query(query);
     res.status(200).json(results);
-  });
-});
-
-
-db.connect((err) => {
-  if (err) {
-    console.error('Database connection failed:', err.stack);
-    return;
+  } catch (err) {
+    console.error('Error fetching reviews:', err);
+    res.status(500).json({ message: 'Internal server error' });
   }
-  console.log('Connected to database.');
 });
 
-
+// Start the server
 const PORT = 4000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
