@@ -53,7 +53,7 @@ const Signin = () => {
   return (
     <div className="container">
       <div className="left">
-        <p className="desc">Find 3D Objects, Mockups, and Illustrations here.</p>
+        <p className="desc">Find Your Dream World...</p>
         <img src={img1} alt="SignIn Page" className="sign_img" />
       </div>
       <div className="right">
